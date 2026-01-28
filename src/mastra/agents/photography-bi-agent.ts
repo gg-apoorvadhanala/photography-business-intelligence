@@ -1,4 +1,6 @@
 import { Agent } from "@mastra/core/agent";
+import { Memory } from "@mastra/memory";
+import { LibSQLStore, LibSQLVector } from "@mastra/libsql";
 import { getPhotographyShootsTool } from "../tools/get-photography-shoots-tool";
 
 export const photographyBIAgent = new Agent({
@@ -84,4 +86,36 @@ SUCCESS CRITERIA
 - Actionable insights that help optimize pricing and scheduling`,
   model: "anthropic/claude-sonnet-4-5-20250929",
   tools: { getPhotographyShootsTool },
+  memory: new Memory({
+    storage: new LibSQLStore({
+      id: "photography-memory-storage",
+      url: "file:../../memory.db",
+    }),
+    vector: new LibSQLVector({
+      id: "photography-memory-vector",
+      url: "file:../../memory.db",
+    }),
+    embedder: "openai/text-embedding-3-small",
+    options: {
+      lastMessages: 20,
+      semanticRecall: {
+        topK: 3,
+        messageRange: {
+          before: 2,
+          after: 1,
+        },
+      },
+      workingMemory: {
+        enabled: true,
+        template: `
+      <photographer>
+         <business_goals></business_goals>
+         <target_annual_revenue></target_annual_revenue>
+         <preferred_shoot_types></preferred_shoot_types>
+         <pricing_strategy></pricing_strategy>
+         <growth_areas></growth_areas>
+       </photographer>`,
+      },
+    },
+  }),
 });
